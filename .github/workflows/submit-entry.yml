@@ -41,6 +41,10 @@ jobs:
         id: cpr
         uses: peter-evans/create-pull-request@v6
         with:
+          # The org forbids the Actions bot from creating PRs, so use a repo-scoped PAT
+          # (Contents + Pull requests: write) stored as the RECON_REGISTRY_PAT secret. The PR
+          # is then opened as that user. No org policy change needed.
+          token: ${{ secrets.RECON_REGISTRY_PAT }}
           branch: entry/${{ steps.parse.outputs.name }}
           title: "Add ${{ steps.parse.outputs.name }}"
           commit-message: "Add ${{ steps.parse.outputs.name }} entry"
