@@ -23,5 +23,8 @@
     "recon",
     "registry"
   ],
-  "license": "MIT"
+  "license": "MIT",
+  "repository": { "type": "git", "url": "git+https://github.com/Recon-Fuzz/recon-registry.git" },
+  "homepage": "https://github.com/Recon-Fuzz/recon-registry#readme",
+  "bugs": { "url": "https://github.com/Recon-Fuzz/recon-registry/issues" }
 }
