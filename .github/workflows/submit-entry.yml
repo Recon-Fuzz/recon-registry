@@ -1,0 +1,60 @@
+name: submit-entry
+
+# Turn a submission into entries/<name>.json, validate it, and open a PR automatically.
+# Two ways in (no gh/fork needed on the contributor side):
+#   - repository_dispatch (event_type: submit-entry) — `recon-registry publish` with a write
+#     token fires this directly; client_payload.entry carries the entry.
+#   - a "Submit a registry entry" Issue — the contributor pastes the entry JSON; this parses it.
+#
+# NOTE: requires the repo/org setting "Allow GitHub Actions to create and approve pull requests"
+# (Settings → Actions → General → Workflow permissions).
+
+on:
+  repository_dispatch:
+    types: [submit-entry]
+  issues:
+    types: [opened, edited]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  open-pr:
+    if: github.event_name == 'repository_dispatch' || contains(github.event.issue.labels.*.name, 'submit-entry')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract entry → entries/<name>.json
+        id: parse
+        env:
+          ENTRY_JSON: ${{ toJSON(github.event.client_payload.entry) }}
+          BODY: ${{ github.event.issue.body }}
+        run: python3 .github/scripts/extract_entry.py
+
+      - name: Validate the entry
+        run: python3 .github/scripts/validate_entries.py
+
+      - name: Open PR
+        id: cpr
+        uses: peter-evans/create-pull-request@v6
+        with:
+          branch: entry/${{ steps.parse.outputs.name }}
+          title: "Add ${{ steps.parse.outputs.name }}"
+          commit-message: "Add ${{ steps.parse.outputs.name }} entry"
+          body: |
+            Automated submission of `${{ steps.parse.outputs.name }}`.
+
+            CI verifies `bytecode == recompile(source, solc)` + schema. Merge = live.
+          add-paths: entries/*.json
+
+      - name: Comment + close issue
+        if: github.event_name == 'issues'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh issue comment ${{ github.event.issue.number }} \
+            --body "✅ Opened PR ${{ steps.cpr.outputs.pull-request-url }} — now in review."
+          gh issue close ${{ github.event.issue.number }}

@@ -13,6 +13,7 @@
       "description": "Unique entry name (also the file name and the deploy-by-name key)."
     },
     "description": { "type": "string", "description": "One-line summary of what it stands up / does." },
+    "author": { "type": "string", "description": "Optional attribution, e.g. \"Jane Doe <jane@example.com>\" (name required, email optional)." },
     "tags": {
       "type": "array",
       "items": { "type": "string" },

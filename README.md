@@ -20,7 +20,7 @@ In your Foundry project:
 npx recon-registry init       # scaffold recon-registry.toml + registry/Harness.sol + Rvm.sol
 # write your harness (its constructor news+wires the whole project; see registry/Harness.sol)
 npx recon-registry pack       # forge build + extract → recon-registry-out/<name>.json
-npx recon-registry publish    # open a PR here  →  merge = live for everyone
+npx recon-registry publish    # write token → auto-PR; else opens a prefilled issue (one Ctrl+V)
 ```
 
 ## Model (intentionally simple)

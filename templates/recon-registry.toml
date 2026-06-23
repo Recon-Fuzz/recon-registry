@@ -3,6 +3,7 @@
 [entry]
 name        = "MyHarness"          # unique entry name (also the published file name)
 description = "One-line description of what this harness/mock stands up"
+author      = "Your Name <you@example.com>"
 tags        = ["protocol", "harness"]
 harness     = "MyHarness"          # the contract `pack` extracts (single self-contained harness)
 # source    = "registry/Harness.sol"  # optional: defaults to the harness's .sol; inlined into the entry

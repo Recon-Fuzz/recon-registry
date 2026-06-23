@@ -14,6 +14,7 @@ for p in sorted(glob.glob("entries/*.json")):
         {
             "name": e["name"],
             "description": e.get("description", ""),
+            "author": e.get("author", ""),
             "tags": e.get("tags", []),
             "solc": e.get("solc", ""),
             "path": p,

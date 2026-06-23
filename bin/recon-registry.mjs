@@ -45,6 +45,27 @@ function sh(cmd, args, opts = {}) {
   return execFileSync(cmd, args, { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], ...opts });
 }
 
+// --- cross-platform helpers (macOS / Linux / Windows) ---
+function copyToClipboard(text) {
+  const p = process.platform;
+  const cands =
+    p === "darwin" ? [["pbcopy", []]]
+    : p === "win32" ? [["clip", []]]
+    : [["xclip", ["-selection", "clipboard"]], ["wl-copy", []], ["xsel", ["--clipboard", "--input"]]];
+  for (const [cmd, args] of cands) {
+    try { execFileSync(cmd, args, { input: text, shell: p === "win32" }); return true; } catch {}
+  }
+  return false;
+}
+function openUrl(url) {
+  const p = process.platform;
+  try {
+    if (p === "darwin") execFileSync("open", [url], { stdio: "ignore" });
+    else if (p === "win32") execFileSync("cmd", ["/c", "start", "", url], { stdio: "ignore" });
+    else execFileSync("xdg-open", [url], { stdio: "ignore" });
+  } catch {}
+}
+
 // ---------------------------------------------------------------- init
 function init() {
   if (!existsSync("foundry.toml")) die("run inside a Foundry project (no foundry.toml found)");
@@ -60,6 +81,18 @@ function init() {
     copyFileSync(join(TEMPLATES, tpl), dst);
     ok(`created ${dst}`);
   }
+  // Best-effort: prefill author from git config (only replaces the untouched placeholder).
+  try {
+    const n = sh("git", ["config", "user.name"]).trim();
+    const e = sh("git", ["config", "user.email"]).trim();
+    const a = n ? (e ? `${n} <${e}>` : n) : "";
+    const t = existsSync("recon-registry.toml") ? readFileSync("recon-registry.toml", "utf8") : "";
+    if (a && t.includes("Your Name <you@example.com>")) {
+      writeFileSync("recon-registry.toml", t.replace("Your Name <you@example.com>", a));
+      ok(`author = ${a}`);
+    }
+  } catch {}
+
   console.log("\nNext: edit recon-registry.toml + registry/Harness.sol, then `npx recon-registry pack`.");
 }
 
@@ -94,6 +127,7 @@ function pack() {
   const entry = {
     name,
     description: m.entry?.description || "",
+    author: m.entry?.author || "",
     tags: m.entry?.tags || [],
     abi: a.abi,
     creationBytecode: bytecode,
@@ -108,40 +142,61 @@ function pack() {
 }
 
 // ---------------------------------------------------------------- publish
-function publish() {
+// Two tiers, no `gh`/`git`, cross-platform:
+//   1. If a write token is available (GH_TOKEN/GITHUB_TOKEN), fire a `repository_dispatch` →
+//      the registry Action validates + opens the PR fully automatically (no UI step).
+//   2. Otherwise, copy the entry JSON to the clipboard and open the prefilled "Submit a
+//      registry entry" issue — the user clicks the field, Ctrl/Cmd+V, Submit; the Action
+//      turns the issue into a PR.
+async function publish() {
   const built = existsSync("recon-registry-out") && readdirSync("recon-registry-out").find((f) => f.endsWith(".json"));
   if (!built) die("nothing packed — run `npx recon-registry pack` first");
-  const m = readToml("recon-registry.toml");
+  const m = existsSync("recon-registry.toml") ? readToml("recon-registry.toml") : {};
   const repo = m.registry?.repo || DEFAULT_REGISTRY;
   const name = built.replace(/\.json$/, "");
-  try { sh("gh", ["--version"]); } catch { die("`gh` (GitHub CLI) is required for publish — https://cli.github.com"); }
+  const file = join("recon-registry-out", built);
+  const jsonText = readFileSync(file, "utf8");
+  const token = process.env.GH_TOKEN || process.env.GITHUB_TOKEN;
 
-  console.log(`Opening PR to ${repo} for entry '${name}' ...`);
-  // Fork+clone the registry, add the entry on a branch, push, open PR.
-  const tmp = sh("mktemp", ["-d"]).trim();
-  sh("gh", ["repo", "fork", repo, "--clone", "--remote", "--", join(tmp, "registry")], { stdio: ["ignore", "inherit", "inherit"] });
-  const dir = join(tmp, "registry");
-  const branch = `entry/${name}`;
-  sh("git", ["-C", dir, "checkout", "-b", branch]);
-  mkdirSync(join(dir, "entries"), { recursive: true });
-  copyFileSync(join("recon-registry-out", built), join(dir, "entries", built));
-  sh("git", ["-C", dir, "add", join("entries", built)]);
-  sh("git", ["-C", dir, "commit", "-m", `Add ${name} entry`]);
-  sh("git", ["-C", dir, "push", "-u", "origin", branch]);
-  sh("gh", ["pr", "create", "--repo", repo, "--title", `Add ${name}`, "--body",
-    `Adds registry entry \`${name}\`.\n\n- description: ${m.entry?.description || ""}\n- tags: ${(m.entry?.tags || []).join(", ")}\n\nCI verifies bytecode == recompile(source, solc).`],
-    { cwd: dir, stdio: ["ignore", "inherit", "inherit"] });
-  ok(`PR opened for ${name}`);
+  // Tier 1: repository_dispatch (needs write access).
+  if (token) {
+    const res = await fetch(`https://api.github.com/repos/${repo}/dispatches`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/vnd.github+json",
+        "Content-Type": "application/json",
+        "User-Agent": "recon-registry",
+      },
+      body: JSON.stringify({ event_type: "submit-entry", client_payload: { entry: JSON.parse(jsonText) } }),
+    });
+    if (res.status === 204) {
+      ok(`dispatched '${name}' — the registry Action will validate it and open a PR.`);
+      return;
+    }
+    console.log(`· repository_dispatch not permitted (HTTP ${res.status}); falling back to the issue flow.`);
+  }
+
+  // Tier 2: clipboard + prefilled issue (one Ctrl/Cmd+V).
+  const url = `https://github.com/${repo}/issues/new?template=submit-entry.yml&title=${encodeURIComponent(`[entry] ${name}`)}`;
+  const copied = copyToClipboard(jsonText);
+  console.log(`\nSubmit '${name}' (no gh/fork/token needed):`);
+  console.log(`  1. Opening: ${url}`);
+  console.log(`  2. Click the "Entry JSON" field and paste${copied ? " (already on your clipboard ✓ — Ctrl/Cmd+V)" : ` from ${file}`}.`);
+  console.log(`  3. Submit — a bot validates it and opens the PR.\n`);
+  openUrl(url);
 }
 
 // ---------------------------------------------------------------- list
-function list() {
+async function list() {
   const m = existsSync("recon-registry.toml") ? readToml("recon-registry.toml") : {};
   const repo = m.registry?.repo || DEFAULT_REGISTRY;
   const url = `https://raw.githubusercontent.com/${repo}/main/registry.json`;
-  console.log(`Fetching ${url} ...`);
-  sh("sh", ["-c", `curl -fsSL ${url} | (command -v jq >/dev/null && jq -r '.entries[] | "\\(.name)  [\\(.tags|join(\\", \\"))]  \\(.description)"' || cat)`],
-    { stdio: ["ignore", "inherit", "inherit"] });
+  const res = await fetch(url, { headers: { "User-Agent": "recon-registry" } });
+  if (!res.ok) die(`could not fetch ${url} (HTTP ${res.status})`);
+  const { entries = [] } = await res.json();
+  if (!entries.length) return console.log("(registry is empty)");
+  for (const e of entries) console.log(`${e.name}\t[${(e.tags || []).join(", ")}]\t${e.description || ""}`);
 }
 
 // ---------------------------------------------------------------- helpers
@@ -168,4 +223,4 @@ function detectSolc() {
 const [, , cmd] = process.argv;
 const fn = { init, pack, publish, list }[cmd];
 if (!fn) die(`unknown command '${cmd ?? ""}'. usage: recon-registry <init|pack|publish|list>`);
-fn();
+await fn();
