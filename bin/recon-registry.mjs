@@ -166,5 +166,6 @@ function detectSolc() {
 }
 
 const [, , cmd] = process.argv;
-({ init, pack, publish, list })[cmd]?.() ??
-  die(`unknown command '${cmd ?? ""}'. usage: recon-registry <init|pack|publish|list>`);
+const fn = { init, pack, publish, list }[cmd];
+if (!fn) die(`unknown command '${cmd ?? ""}'. usage: recon-registry <init|pack|publish|list>`);
+fn();
