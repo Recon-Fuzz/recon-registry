@@ -65,6 +65,15 @@ function openUrl(url) {
     else execFileSync("xdg-open", [url], { stdio: "ignore" });
   } catch {}
 }
+// Reveal a file in the OS file manager, selected/highlighted so it's ready to drag.
+function revealFile(p) {
+  const plat = process.platform;
+  try {
+    if (plat === "darwin") execFileSync("open", ["-R", p], { stdio: "ignore" });
+    else if (plat === "win32") execFileSync("explorer", [`/select,${p}`], { stdio: "ignore" });
+    else execFileSync("xdg-open", [dirname(p)], { stdio: "ignore" }); // most Linux FMs lack --select
+  } catch {}
+}
 
 // ---------------------------------------------------------------- init
 function init() {
@@ -177,16 +186,18 @@ async function publish() {
     console.log(`· repository_dispatch not permitted (HTTP ${res.status}); falling back to the issue flow.`);
   }
 
-  // Tier 2: copy the entry JSON to the clipboard and open the prefilled issue. The user pastes
-  // (Ctrl/Cmd+V) the JSON into the "Entry JSON" field and clicks Submit; the Action turns it
-  // into a PR. (No size handling — the entry is plain JSON, pasted as-is.)
-  const url = `https://github.com/${repo}/issues/new?template=submit-entry.yml&title=${encodeURIComponent(`[entry] ${name}`)}`;
-  const copied = copyToClipboard(jsonText);
+  // Tier 2: open the markdown issue page AND reveal the entry file in the file manager so the
+  // user just drags it into the issue body and submits. The Action downloads + parses the
+  // attached file (drag-dropped .json works) and opens the PR. No clipboard/token/gh needed.
+  const url = `https://github.com/${repo}/issues/new?template=submit-entry.md&title=${encodeURIComponent(`[entry] ${name}`)}`;
+  const abs = resolve(file);
   console.log(`\nSubmit '${name}':`);
-  console.log(`  1. Opening the issue page: ${url}`);
-  console.log(`  2. Paste the entry JSON into the "Entry JSON" field${copied ? " (Ctrl/Cmd+V — already on your clipboard ✓)" : ` from ${file}`}, then Submit.`);
-  console.log(`  3. A bot validates it and opens the PR.\n`);
+  console.log(`  1. Opening the issue page + your file manager (the entry file is highlighted).`);
+  console.log(`  2. Drag this file into the issue body, then click "Submit new issue":`);
+  console.log(`       ${abs}`);
+  console.log(`  3. A bot downloads it, validates it, and opens the PR.\n`);
   openUrl(url);
+  revealFile(abs);
 }
 
 // ---------------------------------------------------------------- list
