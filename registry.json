@@ -12,6 +12,19 @@
    ],
    "solc": "0.8.35",
    "path": "entries/MockERC20.json"
+  },
+  {
+   "name": "MockERC4626Tester",
+   "description": "ERC-4626 vault tester over a mock asset",
+   "author": "0kn0t <0xknot@proton.me>",
+   "tags": [
+    "erc4626",
+    "vault",
+    "token",
+    "mock"
+   ],
+   "solc": "0.8.35",
+   "path": "entries/MockERC4626Tester.json"
   }
  ]
 }
