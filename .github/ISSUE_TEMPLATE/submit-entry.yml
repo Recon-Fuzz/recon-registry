@@ -6,13 +6,13 @@ body:
   - type: markdown
     attributes:
       value: |
-        Paste the JSON produced by `npx recon-registry pack`
-        (`recon-registry-out/<name>.json`). On submit, a bot validates it and opens a PR.
+        Paste the JSON from `npx recon-registry pack` (recon-registry-out/<name>.json) — OR, if it is
+        large, drag-drop that .json file here. On submit, a bot validates it and opens a PR.
   - type: textarea
     id: entry_json
     attributes:
       label: Entry JSON
-      description: The full contents of recon-registry-out/<name>.json
+      description: Paste the entry JSON, or drag-drop the recon-registry-out/<name>.json file
       render: json
     validations:
       required: true

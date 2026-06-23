@@ -177,12 +177,18 @@ async function publish() {
     console.log(`· repository_dispatch not permitted (HTTP ${res.status}); falling back to the issue flow.`);
   }
 
-  // Tier 2: clipboard + prefilled issue (one Ctrl/Cmd+V).
+  // Tier 2: prefilled issue (no token/gh). Small entries paste; large ones drag-drop the file.
   const url = `https://github.com/${repo}/issues/new?template=submit-entry.yml&title=${encodeURIComponent(`[entry] ${name}`)}`;
-  const copied = copyToClipboard(jsonText);
+  const tooBig = jsonText.length > 60000; // issue bodies cap ~65 KB → attach the file instead
   console.log(`\nSubmit '${name}' (no gh/fork/token needed):`);
   console.log(`  1. Opening: ${url}`);
-  console.log(`  2. Click the "Entry JSON" field and paste${copied ? " (already on your clipboard ✓ — Ctrl/Cmd+V)" : ` from ${file}`}.`);
+  if (tooBig) {
+    console.log(`  2. Drag-drop this file into the "Entry JSON" field (too large to paste):`);
+    console.log(`       ${resolve(file)}`);
+  } else {
+    const copied = copyToClipboard(jsonText);
+    console.log(`  2. Click the "Entry JSON" field and paste${copied ? " (copied to clipboard ✓ — Ctrl/Cmd+V)" : ` from ${file}`}.`);
+  }
   console.log(`  3. Submit — a bot validates it and opens the PR.\n`);
   openUrl(url);
 }

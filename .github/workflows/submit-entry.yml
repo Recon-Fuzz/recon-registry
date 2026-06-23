@@ -32,6 +32,7 @@ jobs:
         env:
           ENTRY_JSON: ${{ toJSON(github.event.client_payload.entry) }}
           BODY: ${{ github.event.issue.body }}
+          GITHUB_TOKEN: ${{ github.token }}   # to download a drag-dropped .json attachment
         run: python3 .github/scripts/extract_entry.py
 
       - name: Validate the entry
