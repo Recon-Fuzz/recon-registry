@@ -1,0 +1,39 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/Recon-Fuzz/recon-registry/schema/entry.schema.json",
+  "title": "Recon registry entry",
+  "description": "One self-contained deployable contract (a project harness or a standalone mock). Single contract only — a project is one self-contained Setup-style harness, never a multi-contract manifest.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["name", "description", "tags", "abi", "creationBytecode", "source", "solc"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_.-]+$",
+      "description": "Unique entry name (also the file name and the deploy-by-name key)."
+    },
+    "description": { "type": "string", "description": "One-line summary of what it stands up / does." },
+    "tags": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Discovery tags, e.g. erc4626, vault, lending, oracle, harness, mock."
+    },
+    "abi": {
+      "type": "array",
+      "description": "Standard Solidity ABI (JSON). Needed to encode constructor args and interact."
+    },
+    "creationBytecode": {
+      "type": "string",
+      "pattern": "^0x[0-9a-fA-F]*$",
+      "description": "Linked creation (init) bytecode. Self-contained — embeds any `new`'d deps. Must be non-empty and fully library-linked (no __$ placeholders)."
+    },
+    "source": {
+      "type": "string",
+      "description": "Inlined Solidity source so humans and the LLM operator can see exactly what the contract does."
+    },
+    "solc": {
+      "type": "string",
+      "description": "solc version the bytecode was built with. CI recompiles `source` with this and asserts the bytecode matches (reproducibility = trust; no per-entry provenance)."
+    }
+  }
+}

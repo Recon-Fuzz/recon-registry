@@ -1,0 +1,15 @@
+# recon-registry entry manifest. Edit, then `npx recon-registry pack && npx recon-registry publish`.
+
+[entry]
+name        = "MyHarness"          # unique entry name (also the published file name)
+description = "One-line description of what this harness/mock stands up"
+tags        = ["protocol", "harness"]
+harness     = "MyHarness"          # the contract `pack` extracts (single self-contained harness)
+# source    = "registry/Harness.sol"  # optional: defaults to the harness's .sol; inlined into the entry
+
+[build]
+solc = "0.8.24"                    # stamped into the entry; CI recompiles with this to verify bytecode
+skip = ["test/recon/**"]           # collision guard: skip dirs with clashing basenames
+
+[registry]
+repo = "Recon-Fuzz/recon-registry" # PR target

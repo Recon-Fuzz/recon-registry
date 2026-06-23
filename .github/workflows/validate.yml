@@ -1,0 +1,43 @@
+name: validate
+
+# Gate every PR: each entry's bytecode must match a fresh recompile of its inlined source with
+# its declared solc (reproducibility = trust), and conform to the schema. On merge to main,
+# rebuild registry.json so new entries are immediately live.
+
+on:
+  pull_request:
+    paths: ["entries/**", "schema/**"]
+  push:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: foundry-rs/foundry-toolchain@v1
+
+      - name: Validate entries (schema + bytecode == recompile(source, solc))
+        run: |
+          python3 .github/scripts/validate_entries.py
+
+  reindex:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    needs: validate
+    steps:
+      - uses: actions/checkout@v4
+        with: { token: "${{ secrets.GITHUB_TOKEN }}" }
+      - name: Rebuild registry.json
+        run: |
+          python3 .github/scripts/build_index.py
+      - name: Commit index if changed
+        run: |
+          if ! git diff --quiet registry.json; then
+            git config user.name  "recon-registry-bot"
+            git config user.email "bot@users.noreply.github.com"
+            git add registry.json
+            git commit -m "ci: rebuild registry.json"
+            git push
+          fi

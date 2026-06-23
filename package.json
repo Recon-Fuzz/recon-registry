@@ -1,0 +1,27 @@
+{
+  "name": "recon-registry",
+  "version": "0.1.0",
+  "description": "Package a Foundry project into a single self-contained fuzzing harness/mock and publish it to the Recon contract registry, deployable by name from the operator.",
+  "type": "module",
+  "bin": {
+    "recon-registry": "bin/recon-registry.mjs"
+  },
+  "files": [
+    "bin/",
+    "templates/",
+    "schema/"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "ethereum",
+    "foundry",
+    "forge",
+    "fuzzing",
+    "invariant-testing",
+    "recon",
+    "registry"
+  ],
+  "license": "MIT"
+}
