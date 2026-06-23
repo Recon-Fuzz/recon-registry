@@ -183,8 +183,11 @@ async function publish() {
   console.log(`\nSubmit '${name}' (no gh/fork/token needed):`);
   console.log(`  1. Opening: ${url}`);
   if (tooBig) {
-    console.log(`  2. Drag-drop this file into the "Entry JSON" field (too large to paste):`);
-    console.log(`       ${resolve(file)}`);
+    const txt = file.replace(/\.json$/, ".txt"); // GitHub blocks .json attachments; .txt is allowed
+    writeFileSync(txt, jsonText);
+    console.log(`  2. Under the field, click "selecting" (or drag-drop) and attach this file`);
+    console.log(`     (too large to paste; GitHub blocks .json so we wrote a .txt copy):`);
+    console.log(`       ${resolve(txt)}`);
   } else {
     const copied = copyToClipboard(jsonText);
     console.log(`  2. Click the "Entry JSON" field and paste${copied ? " (copied to clipboard ✓ — Ctrl/Cmd+V)" : ` from ${file}`}.`);

@@ -7,7 +7,8 @@ body:
     attributes:
       value: |
         Paste the JSON from `npx recon-registry pack` (recon-registry-out/<name>.json) — OR, if it is
-        large, drag-drop that .json file here. On submit, a bot validates it and opens a PR.
+        large, attach it as a .txt or .zip file (GitHub blocks .json attachments) — use the
+        "selecting" link under the field. On submit, a bot validates it and opens a PR.
   - type: textarea
     id: entry_json
     attributes:

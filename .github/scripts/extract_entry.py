@@ -7,11 +7,13 @@ Source, in priority order:
   3. a pasted ```json block in the issue body (small entries).
 Writes entries/<name>.json and emits the entry name to $GITHUB_OUTPUT.
 """
+import io
 import json
 import os
 import re
 import sys
 import urllib.request
+import zipfile
 
 body = os.environ.get("BODY", "")
 entry = None
@@ -24,11 +26,11 @@ if ej and ej != "null":
     except json.JSONDecodeError:
         pass
 
-# 2. attached .json file (GitHub uploads drag-dropped files to a user-attachments URL)
+# 2. attached file (GitHub blocks .json attachments, so contributors attach .txt or .zip)
 if entry is None:
     am = re.search(
-        r"https://(?:github\.com/user-attachments/files/\d+/[^\s)]+\.json"
-        r"|[^\s)]*githubusercontent\.com/[^\s)]+\.json)",
+        r"https://(?:github\.com/user-attachments/files/\d+/[^\s)]+\.(?:json|txt|zip)"
+        r"|[^\s)]*githubusercontent\.com/[^\s)]+\.(?:json|txt|zip))",
         body,
     )
     if am:
@@ -43,6 +45,13 @@ if entry is None:
         )
         try:
             data = urllib.request.urlopen(req, timeout=30).read()
+            if url.endswith(".zip"):
+                z = zipfile.ZipFile(io.BytesIO(data))
+                jn = next((n for n in z.namelist() if n.endswith(".json")), None)
+                if jn is None:
+                    print("::error::zip has no .json entry", file=sys.stderr)
+                    sys.exit(1)
+                data = z.read(jn)
             entry = json.loads(data)
         except Exception as e:  # noqa: BLE001
             print(f"::error::failed to download/parse attached entry: {e}", file=sys.stderr)
