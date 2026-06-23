@@ -1,19 +1,18 @@
 name: Submit a registry entry
-description: Submit a packed entry — a bot opens the PR for you (no git/gh needed).
+description: Paste a packed entry JSON — a bot validates it and opens a PR.
 title: "[entry] "
 labels: ["submit-entry"]
 body:
   - type: markdown
     attributes:
       value: |
-        Paste the JSON from `npx recon-registry pack` (recon-registry-out/<name>.json) — OR, if it is
-        large, attach it as a .txt or .zip file (GitHub blocks .json attachments) — use the
-        "selecting" link under the field. On submit, a bot validates it and opens a PR.
+        Run `npx recon-registry pack`, then `npx recon-registry publish` — it copies the entry
+        JSON to your clipboard and opens this page. Paste it below (Ctrl/Cmd+V) and submit.
   - type: textarea
     id: entry_json
     attributes:
       label: Entry JSON
-      description: Paste the entry JSON, or drag-drop the recon-registry-out/<name>.json file
+      description: Paste the contents of recon-registry-out/<name>.json
       render: json
     validations:
       required: true

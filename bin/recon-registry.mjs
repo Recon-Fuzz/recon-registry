@@ -115,8 +115,8 @@ function pack() {
     die(`${harness} has empty bytecode (abstract contract or basename collision — check [build].skip)`);
   if (bytecode.includes("__$")) die(`${harness} has unlinked libraries — link them before packing`);
 
-  // Inline FLATTENED source so it's self-contained: CI can recompile it standalone and verify
-  // the bytecode, and humans/LLM see every dependency in one file.
+  // Inline the FLATTENED source — self-contained (full dependency tree in one file), so CI can
+  // recompile it standalone to verify the bytecode, and humans/LLM see everything.
   const sourcePath = m.entry?.source || guessSource(harness);
   let source = "";
   if (sourcePath && existsSync(sourcePath)) {
@@ -177,22 +177,15 @@ async function publish() {
     console.log(`· repository_dispatch not permitted (HTTP ${res.status}); falling back to the issue flow.`);
   }
 
-  // Tier 2: prefilled issue (no token/gh). Small entries paste; large ones drag-drop the file.
+  // Tier 2: copy the entry JSON to the clipboard and open the prefilled issue. The user pastes
+  // (Ctrl/Cmd+V) the JSON into the "Entry JSON" field and clicks Submit; the Action turns it
+  // into a PR. (No size handling — the entry is plain JSON, pasted as-is.)
   const url = `https://github.com/${repo}/issues/new?template=submit-entry.yml&title=${encodeURIComponent(`[entry] ${name}`)}`;
-  const tooBig = jsonText.length > 60000; // issue bodies cap ~65 KB → attach the file instead
-  console.log(`\nSubmit '${name}' (no gh/fork/token needed):`);
-  console.log(`  1. Opening: ${url}`);
-  if (tooBig) {
-    const txt = file.replace(/\.json$/, ".txt"); // GitHub blocks .json attachments; .txt is allowed
-    writeFileSync(txt, jsonText);
-    console.log(`  2. Under the field, click "selecting" (or drag-drop) and attach this file`);
-    console.log(`     (too large to paste; GitHub blocks .json so we wrote a .txt copy):`);
-    console.log(`       ${resolve(txt)}`);
-  } else {
-    const copied = copyToClipboard(jsonText);
-    console.log(`  2. Click the "Entry JSON" field and paste${copied ? " (copied to clipboard ✓ — Ctrl/Cmd+V)" : ` from ${file}`}.`);
-  }
-  console.log(`  3. Submit — a bot validates it and opens the PR.\n`);
+  const copied = copyToClipboard(jsonText);
+  console.log(`\nSubmit '${name}':`);
+  console.log(`  1. Opening the issue page: ${url}`);
+  console.log(`  2. Paste the entry JSON into the "Entry JSON" field${copied ? " (Ctrl/Cmd+V — already on your clipboard ✓)" : ` from ${file}`}, then Submit.`);
+  console.log(`  3. A bot validates it and opens the PR.\n`);
   openUrl(url);
 }
 

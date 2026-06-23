@@ -1,24 +1,15 @@
 #!/usr/bin/env python3
 """Extract a submitted entry into entries/<name>.json.
 
-Source, in priority order:
-  1. ENTRY_JSON env  — from a `repository_dispatch` client_payload.entry (maintainer path).
-  2. an ATTACHED .json file URL in the issue body (drag-dropped) — downloaded (large entries).
-  3. a pasted ```json block in the issue body (small entries).
-Writes entries/<name>.json and emits the entry name to $GITHUB_OUTPUT.
+Source: ENTRY_JSON env (repository_dispatch client_payload.entry) or BODY env (the entry JSON
+pasted into the "Submit a registry entry" issue). Writes entries/<name>.json + emits the name.
 """
-import io
 import json
 import os
 import re
 import sys
-import urllib.request
-import zipfile
 
-body = os.environ.get("BODY", "")
 entry = None
-
-# 1. repository_dispatch payload
 ej = os.environ.get("ENTRY_JSON", "").strip()
 if ej and ej != "null":
     try:
@@ -26,50 +17,17 @@ if ej and ej != "null":
     except json.JSONDecodeError:
         pass
 
-# 2. attached file (GitHub blocks .json attachments, so contributors attach .txt or .zip)
 if entry is None:
-    am = re.search(
-        r"https://(?:github\.com/user-attachments/files/\d+/[^\s)]+\.(?:json|txt|zip)"
-        r"|[^\s)]*githubusercontent\.com/[^\s)]+\.(?:json|txt|zip))",
-        body,
-    )
-    if am:
-        url = am.group(0)
-        req = urllib.request.Request(
-            url,
-            headers={
-                "Authorization": f"Bearer {os.environ.get('GITHUB_TOKEN', '')}",
-                "User-Agent": "recon-registry",
-                "Accept": "application/octet-stream",
-            },
-        )
-        try:
-            data = urllib.request.urlopen(req, timeout=30).read()
-            if url.endswith(".zip"):
-                z = zipfile.ZipFile(io.BytesIO(data))
-                jn = next((n for n in z.namelist() if n.endswith(".json")), None)
-                if jn is None:
-                    print("::error::zip has no .json entry", file=sys.stderr)
-                    sys.exit(1)
-                data = z.read(jn)
-            entry = json.loads(data)
-        except Exception as e:  # noqa: BLE001
-            print(f"::error::failed to download/parse attached entry: {e}", file=sys.stderr)
-            sys.exit(1)
-
-# 3. pasted JSON block
-if entry is None:
-    m = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", body, re.DOTALL) or re.search(r"(\{.*\})", body, re.DOTALL)
-    if m:
-        try:
-            entry = json.loads(m.group(1))
-        except json.JSONDecodeError as e:
-            print(f"::error::pasted entry JSON is invalid: {e}", file=sys.stderr)
-            sys.exit(1)
-
-if entry is None:
-    print("::error::no entry found (no dispatch payload, attached .json, or pasted JSON)", file=sys.stderr)
-    sys.exit(1)
+    body = os.environ.get("BODY", "")
+    m = re.search(r"```(?:json)?\s*(\{.*\})\s*```", body, re.DOTALL) or re.search(r"(\{.*\})", body, re.DOTALL)
+    if not m:
+        print("::error::no entry JSON found in the issue", file=sys.stderr)
+        sys.exit(1)
+    try:
+        entry = json.loads(m.group(1))
+    except json.JSONDecodeError as e:
+        print(f"::error::entry JSON is invalid: {e}", file=sys.stderr)
+        sys.exit(1)
 
 name = entry.get("name", "")
 if not re.fullmatch(r"[A-Za-z0-9_.-]+", name):
@@ -81,7 +39,6 @@ path = f"entries/{name}.json"
 with open(path, "w") as f:
     json.dump(entry, f, indent=1)
 print(f"wrote {path}")
-
 with open(os.environ["GITHUB_OUTPUT"], "a") as out:
     out.write(f"name={name}\n")
     out.write(f"path={path}\n")
