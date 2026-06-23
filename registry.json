@@ -1,4 +1,17 @@
 {
  "version": 1,
- "entries": []
+ "entries": [
+  {
+   "name": "MockERC20",
+   "description": "Mintable ERC20 with configurable decimals (setup-helpers MockERC20)",
+   "author": "0kn0t <0xknot@proton.me>",
+   "tags": [
+    "erc20",
+    "token",
+    "mock"
+   ],
+   "solc": "0.8.35",
+   "path": "entries/MockERC20.json"
+  }
+ ]
 }
