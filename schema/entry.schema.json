@@ -35,6 +35,11 @@
     "solc": {
       "type": "string",
       "description": "solc version the bytecode was built with. CI recompiles `source` with this and asserts the bytecode matches (reproducibility = trust; no per-entry provenance)."
+    },
+    "labels": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Optional. The rvm labels this entry registers at deploy (e.g. \"pool\", \"token0\", \"lending\") so a consumer suite knows what to getAddr() to wire to it."
     }
   }
 }

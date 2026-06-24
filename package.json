@@ -1,6 +1,6 @@
 {
   "name": "recon-registry",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Package a Foundry project into a single self-contained fuzzing harness/mock and publish it to the Recon contract registry, deployable by name from the operator.",
   "type": "module",
   "bin": {
@@ -9,7 +9,8 @@
   "files": [
     "bin/",
     "templates/",
-    "schema/"
+    "schema/",
+    "skills/"
   ],
   "engines": {
     "node": ">=18"
@@ -24,7 +25,12 @@
     "registry"
   ],
   "license": "MIT",
-  "repository": { "type": "git", "url": "git+https://github.com/Recon-Fuzz/recon-registry.git" },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Recon-Fuzz/recon-registry.git"
+  },
   "homepage": "https://github.com/Recon-Fuzz/recon-registry#readme",
-  "bugs": { "url": "https://github.com/Recon-Fuzz/recon-registry/issues" }
+  "bugs": {
+    "url": "https://github.com/Recon-Fuzz/recon-registry/issues"
+  }
 }

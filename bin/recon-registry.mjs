@@ -83,6 +83,7 @@ function init() {
     ["recon-registry.toml", "recon-registry.toml"],
     [join("registry", "Harness.sol"), "Harness.sol"],
     [join("registry", "Rvm.sol"), "Rvm.sol"],
+    [join("registry", "IERC20.sol"), "IERC20.sol"],
     [join("registry", "README.md"), "registry-README.md"],
   ];
   for (const [dst, tpl] of files) {
@@ -138,6 +139,7 @@ function pack() {
     description: m.entry?.description || "",
     author: m.entry?.author || "",
     tags: m.entry?.tags || [],
+    labels: m.entry?.labels || [],
     abi: a.abi,
     creationBytecode: bytecode,
     source,
@@ -233,7 +235,14 @@ function detectSolc() {
   try { return (sh("forge", ["--version"]).match(/solc\s+([0-9.]+)/) || [])[1] || ""; } catch { return ""; }
 }
 
+const USAGE = "usage: recon-registry <init|pack|publish|list> | --version";
 const [, , cmd] = process.argv;
+if (cmd === "--version" || cmd === "-v") {
+  const pkg = JSON.parse(readFileSync(resolve(__dir, "..", "package.json"), "utf8"));
+  console.log(pkg.version);
+  process.exit(0);
+}
+if (!cmd || cmd === "help" || cmd === "--help" || cmd === "-h") { console.log(USAGE); process.exit(0); }
 const fn = { init, pack, publish, list }[cmd];
-if (!fn) die(`unknown command '${cmd ?? ""}'. usage: recon-registry <init|pack|publish|list>`);
+if (!fn) die(`unknown command '${cmd}'. ${USAGE}`);
 await fn();

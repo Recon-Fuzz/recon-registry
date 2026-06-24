@@ -1,11 +1,14 @@
 # recon-registry entry manifest. Edit, then `npx recon-registry pack && npx recon-registry publish`.
 
 [entry]
-name        = "MyHarness"          # unique entry name (also the published file name)
-description = "One-line description of what this harness/mock stands up"
+name        = "MyIntegration"      # unique entry name (also the published file name)
+description = "Behavioral mock of <integration> — the surface X touches + actor handlers"
 author      = "Your Name <you@example.com>"
-tags        = ["protocol", "harness"]
-harness     = "MyHarness"          # the contract `pack` extracts (single self-contained harness)
+tags        = ["integration", "mock", "lending"]  # e.g. lending|amm|cdp|vault|oracle + protocol name
+harness     = "MyIntegration"      # the contract `pack` extracts (single self-contained piece)
+labels      = ["MyIntegration.pool", "MyIntegration.asset"]  # PREFIX each with the entry name — the
+                                   #   getAddr namespace is SHARED with the suite + other pieces, so bare labels collide.
+                                   #   `pack` persists these; a consumer suite resolves getAddr("MyIntegration.pool").
 # source    = "registry/Harness.sol"  # optional: defaults to the harness's .sol; inlined into the entry
 
 [build]
