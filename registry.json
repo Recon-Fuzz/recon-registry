@@ -1,4 +1,18 @@
 {
  "version": 1,
- "entries": []
+ "entries": [
+  {
+   "name": "MockERC4626Tester",
+   "description": "Behavioral mock of a misbehaving ERC4626 vault \u2014 configurable per-function reverts (throw/OOG/return-bomb/revert-bomb), yield manipulation (increase/decrease), unbacked share minting, and a settable decimals offset. Subjects an integrator to a vault that drifts and misbehaves.",
+   "author": "kn0t <terabase7@gmail.com>",
+   "tags": [
+    "vault",
+    "erc4626",
+    "integration",
+    "mock"
+   ],
+   "solc": "0.8.35",
+   "path": "entries/MockERC4626Tester.json"
+  }
+ ]
 }
