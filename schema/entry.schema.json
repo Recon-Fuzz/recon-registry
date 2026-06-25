@@ -39,7 +39,7 @@
     "labels": {
       "type": "array",
       "items": { "type": "string" },
-      "description": "Optional. The rvm labels this entry registers at deploy (e.g. \"pool\", \"token0\", \"lending\") so a consumer suite knows what to getAddr() to wire to it."
+      "description": "Optional. ONLY the additional internal addresses the constructor explicitly rvm.registers, entry-name-prefixed (e.g. \"LendingMock.loanToken\"). Do NOT list the main contract — it is auto-registered under the entry name (getAddr(\"<EntryName>\")). A self-contained mock that registers nothing internally → []."
     }
   }
 }

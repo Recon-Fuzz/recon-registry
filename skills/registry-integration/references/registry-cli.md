@@ -10,14 +10,14 @@ One entry = one self-contained deployable contract. Fields:
 - `creationBytecode` — linked creation (init) bytecode; **fully library-linked** (no `__$` placeholders), embeds any `new`'d deps. Self-contained.
 - `source` — inlined Solidity source (so humans + the operator can see exactly what it does).
 - `solc` — the solc version it was built with.
-- `labels` — optional; the `rvm` labels this entry registers at deploy, **prefixed with the entry name** (e.g. `"LendingMock.lending"`, `"LendingMock.loanToken"`) so they never collide with the suite's or other pieces' labels in the SHARED `getAddr` namespace. `pack` reads `[entry].labels` from the toml and persists them here; consumers `getAddr("<EntryName>.<label>")`.
+- `labels` — optional; **only the ADDITIONAL internal addresses the piece's constructor explicitly `rvm.register`s** (e.g. `"LendingMock.loanToken"` for a token the piece itself deploys), **prefixed with the entry name** so they never collide in the SHARED `getAddr` namespace. **Do NOT list the main contract** — the operator auto-registers the deployed address under the entry name (`getAddr("<EntryName>")`). A self-contained mock that registers nothing internally → `labels = []`. Never declare a label the contract doesn't actually register (a phantom label that won't resolve). `pack` reads `[entry].labels` from the toml and persists them here.
 
 No provenance beyond `solc` — trust comes from the CI reproducibility check.
 
 ## CLI (`npx recon-registry <cmd>`)
 - **`init`** — run in a Foundry project. Scaffolds `recon-registry.toml` + `registry/{Harness.sol, Rvm.sol, IERC20.sol, README.md}` (idempotent; prefills author from git).
 - **`pack`** — `forge build` (with `[build].skip` to dodge clashing basenames), extracts the concrete artifact (asserts non-empty, fully-linked bytecode), inlines the source, stamps `solc`, writes `recon-registry-out/<name>.json`.
-- **`publish`** — submits the entry to the registry repo's Action, which validates it and opens a PR. **No `gh` needed:** with a `GH_TOKEN`/`GITHUB_TOKEN` it fires a `repository_dispatch`; otherwise it opens a prefilled issue in your browser and reveals the entry file to drag in. On merge, `registry.json` is rebuilt and the entry is live + deployable by name.
+- **`publish`** — opens a PR that adds the entry to the registry repo, entirely via the GitHub API (no clone). With the `gh` CLI authenticated (`gh auth login`, write access to the repo) it creates a branch, commits the entry, and opens the PR **directly — no browser, no payload-size cap** (handles multi-MB entries). Without `gh`/write access it falls back to a prefilled issue you submit by hand. On merge, `registry.json` is rebuilt and the entry is live + deployable by name.
 - **`list`** — list published entries. (`--version` prints the CLI version.)
 
 ## `recon-registry.toml`
@@ -27,7 +27,9 @@ name = "LendingMock"
 description = "Behavioral mock of a single lending market — supply/borrow/accrue/liquidate"
 tags = ["lending", "integration", "mock"]
 harness = "LendingMock"          # the contract pack extracts
-labels = ["LendingMock.lending","LendingMock.loanToken","LendingMock.collToken"]  # entry-name-prefixed (shared namespace); pack persists them
+labels = ["LendingMock.loanToken","LendingMock.collToken"]  # ONLY internal deps the constructor rvm.registers
+                                 #   (entry-name-prefixed). The market itself resolves via getAddr("LendingMock")
+                                 #   (auto-registered) — don't list it. A self-contained mock → labels = []
 [build]
 solc = "0.8.24"                  # MUST match your toolchain (the reproducibility gate recompiles with it)
 skip = ["test/recon/**"]
@@ -40,6 +42,6 @@ skip = ["test/recon/**"]
 
 ## Single-contract rules
 - No unresolved deployed-library linking (`pack` rejects `__$` placeholders). Cause: a `library` with `external`/`public` functions becomes a *deployed* library → an unlinkable `__$...$` placeholder. Fix: make embedded library functions **`internal`** so they inline (or link the lib).
-- No constructor args (the piece deploys/wires itself and pulls actors via `rvm`).
-- `new`'d mocks/deps are embedded into the creation bytecode → the entry stays one artifact.
+- **The constructor MAY take args** — deps the consumer chooses (the asset/token/oracle address) are passed at deploy via `deployFromRegistry("<name>", abi.encode(args))` / `deploy_from_registry("<name>", [args])`. Don't fabricate consumer-chosen deps inside the piece (no `rvm.getAsset()`, no self-minted underlying). Fabricate internally only for state the consumer never controls (seed reserves, bookkeeping).
+- `new`'d helper mocks/deps are embedded into the creation bytecode → the entry stays one artifact.
 </content>

@@ -6,10 +6,12 @@ description = "Behavioral mock of <integration> — the surface X touches + acto
 author      = "Your Name <you@example.com>"
 tags        = ["integration", "mock", "lending"]  # e.g. lending|amm|cdp|vault|oracle + protocol name
 harness     = "MyIntegration"      # the contract `pack` extracts (single self-contained piece)
-labels      = ["MyIntegration.pool", "MyIntegration.asset"]  # PREFIX each with the entry name — the
-                                   #   getAddr namespace is SHARED with the suite + other pieces, so bare labels collide.
-                                   #   `pack` persists these; a consumer suite resolves getAddr("MyIntegration.pool").
-# source    = "registry/Harness.sol"  # optional: defaults to the harness's .sol; inlined into the entry
+labels      = []                   # ONLY ADDITIONAL internal addresses your constructor rvm.registers
+                                   #   (entry-name-prefixed, e.g. "MyIntegration.loanToken"). LEAVE EMPTY
+                                   #   for a self-contained mock: the operator auto-registers the deployed
+                                   #   contract under the entry name — X resolves getAddr("MyIntegration").
+                                   #   Never list a label your contract doesn't actually rvm.register.
+# source    = "registry/Harness.sol"  # optional: defaults to the harness's .sol (or src/<harness>.sol); inlined
 
 [build]
 solc = "0.8.24"                    # stamped into the entry; CI recompiles with this to verify bytecode
